@@ -1,0 +1,8 @@
+{
+  "name": "Fit Boost",
+  "description": "A premium AI-powered fitness, health, and nutrition application featuring virtual coaching and body analysis.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
