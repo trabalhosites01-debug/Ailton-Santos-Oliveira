@@ -9,6 +9,7 @@ import { PersonalTrainer } from './pages/PersonalTrainer';
 import { Nutritionist } from './pages/Nutritionist';
 import { Scanner } from './pages/Scanner';
 import { AdminPanel } from './pages/AdminPanel';
+import { WorkoutCalendar } from './pages/WorkoutCalendar';
 import { AppRoute } from './types';
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -60,6 +61,7 @@ const AppRoutes = () => {
       <Route path={AppRoute.NUTRITIONIST} element={<ProtectedRoute><Nutritionist /></ProtectedRoute>} />
       <Route path={AppRoute.BODY_SCAN} element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
       <Route path={AppRoute.FOOD_SCAN} element={<ProtectedRoute><Scanner /></ProtectedRoute>} />
+      <Route path={AppRoute.CALENDAR} element={<ProtectedRoute><WorkoutCalendar /></ProtectedRoute>} />
       
       {/* Admin Route */}
       <Route path={AppRoute.ADMIN} element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />

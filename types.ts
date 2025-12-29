@@ -19,6 +19,7 @@ export interface UserProfile {
   weight?: number; // kg
   level?: TrainingLevel;
   goal?: UserGoal;
+  workoutDays?: string[]; // New: Stores active workout days (e.g., ['Segunda-feira', 'Quarta-feira'])
   onboarded: boolean;
   isAdmin?: boolean;
 }
@@ -50,5 +51,6 @@ export enum AppRoute {
   NUTRITIONIST = '/nutritionist',
   BODY_SCAN = '/body-scan',
   FOOD_SCAN = '/food-scan',
+  CALENDAR = '/calendar',
   ADMIN = '/admin'
 }

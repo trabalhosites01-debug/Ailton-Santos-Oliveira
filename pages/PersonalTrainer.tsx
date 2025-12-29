@@ -1,34 +1,38 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ChatInterface, ChatInterfaceHandle, QuickAction } from '../components/ChatInterface';
-import { X, Check, Calendar, BicepsFlexed, ClipboardList, Zap, ChevronRight, PlayCircle, AlertCircle } from 'lucide-react';
-
-// Database for Technique Correction Flow
-const exerciseDatabase: Record<string, string[]> = {
-  "Peitoral (Peito)": ["Supino Reto com Barra", "Supino Inclinado com Halteres", "Crossover (Polia Alta)", "Peck Deck (Voador)", "Flexão de Braço"],
-  "Dorsais (Costas)": ["Puxada Alta (Pulldown)", "Remada Curvada com Barra", "Remada Baixa (Triângulo)", "Levantamento Terra", "Barra Fixa"],
-  "Membros Inferiores (Pernas)": ["Agachamento Livre", "Leg Press 45", "Cadeira Extensora", "Mesa Flexora", "Stiff", "Elevação Pélvica"],
-  "Ombros (Deltoides)": ["Desenvolvimento Militar", "Elevação Lateral", "Elevação Frontal", "Crucifixo Inverso"],
-  "Braços (Bíceps/Tríceps)": ["Rosca Direta", "Rosca Martelo", "Tríceps Polia (Corda)", "Tríceps Testa"]
-};
+import { X, Check, Calendar, BicepsFlexed, ClipboardList, AlertCircle, ArrowRight } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { AppRoute } from '../types';
 
 export const PersonalTrainer: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateProfile } = useAuth();
   const chatRef = useRef<ChatInterfaceHandle>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
   
   // Modals State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [isTechniqueModalOpen, setIsTechniqueModalOpen] = useState(false);
   
   // Schedule State
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
-  
-  // Technique State
-  const [selectedBodyPart, setSelectedBodyPart] = useState<string | null>(null);
 
   const daysOfWeek = [
     'Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'
   ];
+
+  // Check for auto-prompt from Calendar
+  useEffect(() => {
+    if (location.state && (location.state as any).autoPrompt && chatRef.current) {
+        const prompt = (location.state as any).autoPrompt;
+        // Small timeout to ensure chat is mounted
+        setTimeout(() => {
+            chatRef.current?.sendMessage(prompt);
+            // Clear state so it doesn't trigger on refresh
+            window.history.replaceState({}, document.title);
+        }, 500);
+    }
+  }, [location.state]);
 
   if (!user) return null;
 
@@ -43,6 +47,10 @@ export const PersonalTrainer: React.FC = () => {
 
   const handleCreatePlan = () => {
     if (selectedDays.length < 1) return;
+    
+    // INTEGRATION: Save days to profile for Calendar module
+    updateProfile({ workoutDays: selectedDays });
+
     setIsScheduleModalOpen(false);
     
     // PROMPT TREINO
@@ -58,42 +66,11 @@ export const PersonalTrainer: React.FC = () => {
     chatRef.current?.sendMessage(prompt);
   };
 
-  // --- TECHNIQUE LOGIC ---
-  const handleTechniqueSelect = (exercise: string) => {
-    setIsTechniqueModalOpen(false);
-    setSelectedBodyPart(null); // Reset for next time
-
-    // PROMPT CORREÇÃO TÉCNICA COM FALLBACK SEGURO
-    // Forçamos a IA a usar um link de busca se ela não achar um vídeo direto, garantindo que sempre haja um link funcional.
-    const searchUrl = `https://www.youtube.com/results?search_query=tecnica+correta+${exercise.replace(/ /g, '+')}`;
-    
-    const prompt = `
-    AÇÃO: Corrigir técnica do exercício **${exercise}**.
-    
-    PASSO 1 (VIDEO - OBRIGATÓRIO):
-    - Pesquise um vídeo demonstrativo no Google/YouTube.
-    - Se encontrar um vídeo ESPECÍFICO de alta qualidade, use a URL dele.
-    - SE NÃO TIVER CERTEZA ou a busca falhar, USE ESTA URL DE BUSCA EXATA: ${searchUrl}
-    - OBRIGATÓRIO: Coloque o link no TOPO DA RESPOSTA no formato: [Assistir Vídeo no YouTube](URL_ESCOLHIDA)
-    
-    PASSO 2 (CORREÇÃO):
-    - Liste 3 pontos essenciais para a execução correta.
-    - Liste 1 erro comum a evitar.
-    `;
-
-    chatRef.current?.sendMessage(prompt);
-  };
-
   const quickActions: QuickAction[] = [
     { 
       label: "Criar Cronograma", 
       action: () => setIsScheduleModalOpen(true),
       icon: <Calendar size={18} />
-    },
-    { 
-      label: "Corrigir Técnica", 
-      action: () => setIsTechniqueModalOpen(true), 
-      icon: <Zap size={18} />
     },
     {
       label: "Listar Máquinas",
@@ -123,11 +100,29 @@ export const PersonalTrainer: React.FC = () => {
              <p className="text-blue-100 text-lg md:text-xl max-w-2xl font-light">
                Cronogramas diretos, tabelas simplificadas e correção de técnica com vídeos.
              </p>
+
+             {/* CALENDAR INTEGRATION BADGE */}
+             {user.workoutDays && user.workoutDays.length > 0 && (
+                <div className="mt-6 flex items-center gap-4 animate-fade-in">
+                    <div className="bg-slate-900/50 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10 flex items-center gap-3">
+                        <Calendar size={16} className="text-green-400" />
+                        <span className="text-sm text-slate-200">
+                            Agenda ativa: <strong className="text-white">{user.workoutDays.length} dias/semana</strong>
+                        </span>
+                    </div>
+                    <button 
+                        onClick={() => navigate(AppRoute.CALENDAR)}
+                        className="text-sm font-semibold text-white hover:text-blue-300 flex items-center gap-1 transition-colors"
+                    >
+                        Ver Calendário <ArrowRight size={14} />
+                    </button>
+                </div>
+             )}
           </div>
         </div>
         
         {/* Quick Actions Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {quickActions.map((qa, idx) => (
                 <button
                     key={idx}
@@ -147,7 +142,7 @@ export const PersonalTrainer: React.FC = () => {
                 ref={chatRef}
                 user={user}
                 type="trainer"
-                initialMessage={`**Sessão Iniciada.**\n\nSou seu treinador. Para treinos, tabelas simples. Para técnica, envio o link do vídeo.`}
+                initialMessage={`**Sessão Iniciada.**\n\nSou seu treinador. Para treinos, tabelas simples. Posso criar seu cronograma e salvar no calendário.`}
                 quickActions={[]} 
             />
         </div>
@@ -160,9 +155,12 @@ export const PersonalTrainer: React.FC = () => {
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-red-600"></div>
               
               <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Calendar className="text-red-500" /> Dias de Treino
-                </h2>
+                <div>
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                        <Calendar className="text-red-500" /> Dias de Treino
+                    </h2>
+                    <p className="text-sm text-slate-400 mt-1">Selecione os dias. Eles serão salvos no seu calendário.</p>
+                </div>
                 <button onClick={() => setIsScheduleModalOpen(false)}><X className="text-slate-400" /></button>
               </div>
 
@@ -178,73 +176,8 @@ export const PersonalTrainer: React.FC = () => {
 
               <button onClick={handleCreatePlan} disabled={selectedDays.length === 0}
                 className="w-full py-4 rounded-xl font-bold bg-gradient-to-r from-blue-600 to-red-600 text-white shadow-lg disabled:opacity-50">
-                GERAR CRONOGRAMA
+                GERAR CRONOGRAMA E SALVAR
               </button>
-           </div>
-        </div>
-      )}
-
-      {/* MODAL: TECHNIQUE CORRECTION (Steps) */}
-      {isTechniqueModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md animate-fade-in">
-           <div className="bg-slate-900 border border-white/10 rounded-3xl w-full max-w-lg p-8 shadow-2xl relative overflow-hidden flex flex-col max-h-[80vh]">
-              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 to-red-600"></div>
-              
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                        <Zap className="text-blue-500" /> Corrigir Técnica
-                    </h2>
-                    <p className="text-sm text-slate-400 mt-1">
-                        {selectedBodyPart ? `Selecione o exercício de ${selectedBodyPart}:` : "Selecione o grupo muscular:"}
-                    </p>
-                </div>
-                <button onClick={() => { setIsTechniqueModalOpen(false); setSelectedBodyPart(null); }}><X className="text-slate-400" /></button>
-              </div>
-
-              {/* AVISO IMPORTANTE SOBRE VIDEOS */}
-              <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl mb-4 flex items-start gap-3">
-                  <AlertCircle className="text-blue-400 shrink-0 mt-0.5" size={18} />
-                  <p className="text-xs text-blue-200">
-                    <strong>Aviso:</strong> Nem todos os exercícios possuem vídeos exatos no YouTube para adicionar a URL, mas buscaremos a melhor alternativa possível.
-                  </p>
-              </div>
-
-              <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 grid gap-3">
-                  {!selectedBodyPart ? (
-                      // STEP 1: Body Parts
-                      Object.keys(exerciseDatabase).map(part => (
-                          <button 
-                            key={part} 
-                            onClick={() => setSelectedBodyPart(part)}
-                            className="p-5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/5 hover:border-blue-500 flex items-center justify-between group transition-all"
-                          >
-                             <span className="font-bold text-lg text-white">{part}</span>
-                             <ChevronRight className="text-slate-500 group-hover:text-blue-400" />
-                          </button>
-                      ))
-                  ) : (
-                      // STEP 2: Machines / Exercises
-                      <>
-                        <button 
-                            onClick={() => setSelectedBodyPart(null)} 
-                            className="text-sm text-slate-400 hover:text-white mb-2 flex items-center gap-1"
-                        >
-                            ← Voltar
-                        </button>
-                        {exerciseDatabase[selectedBodyPart].map(exercise => (
-                            <button 
-                                key={exercise}
-                                onClick={() => handleTechniqueSelect(exercise)}
-                                className="p-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-white/5 hover:border-red-500 flex items-center justify-between group transition-all text-left"
-                            >
-                                <span className="font-medium text-slate-200 group-hover:text-white">{exercise}</span>
-                                <PlayCircle className="text-slate-500 group-hover:text-red-500" size={20} />
-                            </button>
-                        ))}
-                      </>
-                  )}
-              </div>
            </div>
         </div>
       )}

@@ -10,7 +10,8 @@ import {
   Menu, 
   X,
   User,
-  ShieldAlert
+  ShieldAlert,
+  CalendarDays
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppRoute } from '../types';
@@ -26,6 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { name: 'Dashboard', path: AppRoute.DASHBOARD, icon: LayoutDashboard },
+    { name: 'Calendário', path: AppRoute.CALENDAR, icon: CalendarDays },
     { name: 'Personal Trainer', path: AppRoute.TRAINER, icon: Dumbbell },
     { name: 'Nutricionista', path: AppRoute.NUTRITIONIST, icon: Utensils },
     { name: 'Scanner Corporal', path: AppRoute.BODY_SCAN, icon: ScanLine },

@@ -100,16 +100,22 @@ export const sendMessageToAI = async (
   }
 };
 
-export const analyzeImage = async (base64Image: string, prompt: string, type: 'body' | 'food'): Promise<AIResponse> => {
+// Updated to accept multiple images
+export const analyzeImage = async (base64Images: string[], prompt: string, type: 'body' | 'food'): Promise<AIResponse> => {
    try {
     const model = 'gemini-2.5-flash-image';
     const enhancedPrompt = prompt + " Responda com um laudo técnico profissional e estruturado.";
+
+    // Create parts for each image
+    const imageParts = base64Images.map(imgData => ({
+        inlineData: { mimeType: 'image/jpeg', data: imgData }
+    }));
 
     const response = await ai.models.generateContent({
       model: model,
       contents: {
         parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+            ...imageParts,
             { text: enhancedPrompt }
         ]
       }

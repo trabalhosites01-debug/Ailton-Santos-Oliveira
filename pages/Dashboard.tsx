@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, Utensils, ScanLine, Camera, ChevronRight, ArrowUpRight } from 'lucide-react';
+import { Dumbbell, Utensils, ScanLine, Camera, ChevronRight, CalendarDays } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppRoute } from '../types';
 
@@ -9,6 +9,14 @@ export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const modules = [
+    {
+      title: "Calendário de Treino",
+      desc: "Visualize e gerencie seus dias de treino.",
+      icon: CalendarDays,
+      color: "from-pink-500 to-rose-600",
+      path: AppRoute.CALENDAR,
+      action: "Ver Agenda"
+    },
     {
       title: "Personal Trainer AI",
       desc: "Treinos personalizados, cronogramas e suporte 24h.",
@@ -50,12 +58,12 @@ export const Dashboard: React.FC = () => {
         <p className="text-slate-400">Seu painel de controle para {user?.goal?.toLowerCase()}.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {modules.map((mod, idx) => (
           <div 
             key={idx}
             onClick={() => navigate(mod.path)}
-            className="group relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-600 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl hover:-translate-y-1"
+            className={`group relative overflow-hidden rounded-3xl bg-slate-900 border border-slate-800 hover:border-slate-600 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl hover:-translate-y-1 ${idx === 0 ? 'md:col-span-2 lg:col-span-1' : ''}`}
           >
             <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${mod.color} opacity-10 blur-3xl rounded-full transform translate-x-10 -translate-y-10 group-hover:opacity-20 transition-opacity`}></div>
             
