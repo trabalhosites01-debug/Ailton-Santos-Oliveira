@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button, Input, Card } from '../components/UI';
 import { UserGoal, TrainingLevel, AppRoute } from '../types';
+import { ArrowLeft } from 'lucide-react';
 
 export const Onboarding: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isEditing = location.state?.editing;
 
   const [formData, setFormData] = useState({
     age: '',
@@ -15,6 +18,19 @@ export const Onboarding: React.FC = () => {
     level: TrainingLevel.BEGINNER,
     goal: UserGoal.LOSE_FAT
   });
+
+  // Pre-fill data if editing
+  useEffect(() => {
+    if (user && isEditing) {
+        setFormData({
+            age: user.age?.toString() || '',
+            height: user.height?.toString() || '',
+            weight: user.weight?.toString() || '',
+            level: user.level || TrainingLevel.BEGINNER,
+            goal: user.goal || UserGoal.LOSE_FAT
+        });
+    }
+  }, [user, isEditing]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -35,12 +51,27 @@ export const Onboarding: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-      <Card className="max-w-2xl w-full border-slate-800 bg-slate-900/90">
-        <div className="mb-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">Configuração do Perfil</h2>
+      <Card className="max-w-2xl w-full border-slate-800 bg-slate-900/90 relative">
+        
+        {isEditing && (
+            <button 
+                onClick={() => navigate(AppRoute.DASHBOARD)} 
+                className="absolute top-6 left-6 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+            >
+                <ArrowLeft size={20} />
+            </button>
+        )}
+
+        <div className="mb-8 text-center pt-2">
+          <h2 className="text-2xl font-bold text-white mb-2">
+            {isEditing ? 'Editar Perfil' : 'Configuração do Perfil'}
+          </h2>
           <p className="text-slate-400">
-            Precisamos desses dados para calibrar as IAs do Personal e Nutricionista. 
-            <br/><span className="text-emerald-500 font-medium">Esta etapa é única e obrigatória.</span>
+            {isEditing 
+                ? 'Atualize seus dados para recalibrar as IAs.' 
+                : 'Precisamos desses dados para calibrar as IAs do Personal e Nutricionista.'}
+            <br/>
+            {!isEditing && <span className="text-emerald-500 font-medium">Esta etapa é única e obrigatória.</span>}
           </p>
         </div>
 
@@ -120,7 +151,7 @@ export const Onboarding: React.FC = () => {
 
           <div className="pt-4 border-t border-white/5">
             <Button type="submit" fullWidth className="text-lg py-4">
-              Salvar Perfil e Acessar Dashboard
+              {isEditing ? 'Atualizar Perfil' : 'Salvar Perfil e Acessar Dashboard'}
             </Button>
             <p className="text-center text-xs text-slate-500 mt-4">
               🔒 Seus dados são salvos localmente e usados apenas para gerar seus treinos e dieta.

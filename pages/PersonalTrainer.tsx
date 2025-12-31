@@ -74,7 +74,7 @@ export const PersonalTrainer: React.FC = () => {
     },
     {
       label: "Listar Máquinas",
-      prompt: "Liste as melhores máquinas de academia para HIPERTROFIA RÁPIDA de TODO O CORPO. Organize em uma tabela: | Grupo Muscular | Máquina | Benefício Principal |. Cubra Peito, Costas, Pernas, Ombros e Braços.",
+      prompt: "Liste as melhores máquinas de academia para HIPERTROFIA RÁPIDA. Organize OBRIGATORIAMENTE nesta tabela: | Máquina | Grupo Muscular Primário | Benefício Adicional para Hipertrofia |. Cubra Peito, Costas, Pernas, Ombros e Braços.",
       icon: <ClipboardList size={18} />
     },
     { 

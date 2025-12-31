@@ -1,8 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Dumbbell, Utensils, ScanLine, Camera, ChevronRight, CalendarDays } from 'lucide-react';
+import { Dumbbell, Utensils, ScanLine, Camera, ChevronRight, CalendarDays, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AppRoute } from '../types';
+import { Button } from '../components/UI';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -53,9 +54,20 @@ export const Dashboard: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <header>
-        <h1 className="text-3xl font-bold text-white mb-2">Olá, {user?.name?.split(' ')[0]} 👋</h1>
-        <p className="text-slate-400">Seu painel de controle para {user?.goal?.toLowerCase()}.</p>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+           <h1 className="text-3xl font-bold text-white mb-2">Olá, {user?.name?.split(' ')[0]} 👋</h1>
+           <p className="text-slate-400">Seu painel de controle para {user?.goal?.toLowerCase()}.</p>
+        </div>
+        
+        <Button 
+            variant="outline" 
+            className="flex items-center gap-2 border-slate-700 bg-slate-900/50"
+            onClick={() => navigate(AppRoute.ONBOARDING, { state: { editing: true } })}
+        >
+            <Settings size={18} />
+            Editar Perfil
+        </Button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

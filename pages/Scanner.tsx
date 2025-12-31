@@ -1,10 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Upload, Camera, AlertTriangle, CheckCircle, RefreshCw, Globe, ExternalLink, Image as ImageIcon, Video, X } from 'lucide-react';
+import { Upload, Camera, AlertTriangle, CheckCircle, RefreshCw, Globe, ExternalLink, Image as ImageIcon, Video, X, Flame, Wheat, Droplets, Dumbbell, ShieldAlert } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button, Card, Loader } from '../components/UI';
 import { analyzeImage, AIResponse } from '../services/geminiService';
 import { AppRoute } from '../types';
+
+interface Macros {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
 
 export const Scanner: React.FC = () => {
   const location = useLocation();
@@ -13,10 +20,12 @@ export const Scanner: React.FC = () => {
   // -- STATE GENERAL --
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AIResponse | null>(null);
+  const [macros, setMacros] = useState<Macros | null>(null);
 
   // -- STATE FOOD SCAN (Single Image or Camera) --
   const [foodImage, setFoodImage] = useState<string | null>(null);
   const [cameraMode, setCameraMode] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null); // New error state
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -32,7 +41,7 @@ export const Scanner: React.FC = () => {
   
   const prompt = isBodyScan
     ? "AJA COMO UM TREINADOR DE FISICULTURISMO DE ELITE. Analise estas duas fotos (Frente e Costas) do físico com extremo rigor técnico. 1. Estime o BF% (Gordura Corporal). 2. Identifique ASSIMETRIAS entre os lados. 3. Crie uma lista detalhada dos PONTOS FORTES e PONTOS FRACOS musculares (visão frontal e dorsal). 4. Prescreva uma estratégia de correção. Use TABELAS."
-    : "AJA COMO UM NUTRICIONISTA ESPORTIVO. Analise este prato. 1. Identifique todos os alimentos. 2. Crie uma TABELA NUTRICIONAL completa com estimativa de Gramas, Calorias, Proteínas, Carbos e Gorduras para cada item. 3. Calcule o TOTAL da refeição. 4. Dê um veredito técnico sobre a qualidade nutricional.";
+    : "AJA COMO UM NUTRICIONISTA ESPORTIVO. Analise este prato. 1. Identifique todos os alimentos. 2. Crie uma TABELA NUTRICIONAL completa com estimativa de Gramas, Calorias, Proteínas, Carbos e Gorduras para cada item. 3. Calcule o TOTAL da refeição. 4. Dê um veredito técnico sobre a qualidade nutricional. 5. IMPORTANTE: Ao final da resposta, forneça OBRIGATORIAMENTE um bloco de código JSON contendo APENAS os totais, neste formato exato: ```json { \"calories\": number, \"protein\": number, \"carbs\": number, \"fat\": number } ```";
 
   // --- CLEANUP ON UNMOUNT ---
   useEffect(() => {
@@ -43,6 +52,7 @@ export const Scanner: React.FC = () => {
 
   // --- CAMERA LOGIC (Food Scan) ---
   const startCamera = async () => {
+    setCameraError(null);
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: 'environment' } 
@@ -52,8 +62,8 @@ export const Scanner: React.FC = () => {
         videoRef.current.srcObject = mediaStream;
       }
     } catch (err) {
-      console.error("Camera access denied", err);
-      alert("Não foi possível acessar a câmera. Verifique as permissões.");
+      console.error("Camera access denied or failed", err);
+      setCameraError("Não foi possível acessar a câmera. Verifique as permissões do navegador ou use o upload da Galeria.");
       setCameraMode(false);
     }
   };
@@ -69,6 +79,10 @@ export const Scanner: React.FC = () => {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
+      
+      // Ensure dimensions are valid
+      if (video.videoWidth === 0 || video.videoHeight === 0) return;
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext('2d');
@@ -89,12 +103,14 @@ export const Scanner: React.FC = () => {
     } else {
       setCameraMode(true);
       setFoodImage(null); // Clear previous image
+      setCameraError(null);
       setTimeout(startCamera, 100); // Allow render
     }
   };
 
   // --- FILE UPLOAD LOGIC ---
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (s: string) => void) => {
+    setCameraError(null);
     const file = e.target.files?.[0];
     if (file) {
       setLoading(true);
@@ -111,6 +127,8 @@ export const Scanner: React.FC = () => {
   const handleAnalysis = async () => {
     setLoading(true);
     setResult(null);
+    setMacros(null);
+    setCameraError(null);
     
     try {
       let imagesToSend: string[] = [];
@@ -125,6 +143,21 @@ export const Scanner: React.FC = () => {
 
       const analysis = await analyzeImage(imagesToSend, prompt, isBodyScan ? 'body' : 'food');
       setResult(analysis);
+
+      // Try to parse JSON macros for food
+      if (!isBodyScan && analysis.text) {
+        try {
+            const jsonMatch = analysis.text.match(/```json\n([\s\S]*?)\n```/) || analysis.text.match(/\{[\s\S]*"calories"[\s\S]*\}/);
+            if (jsonMatch) {
+                 const jsonStr = jsonMatch[1] || jsonMatch[0];
+                 const parsed = JSON.parse(jsonStr);
+                 setMacros(parsed);
+            }
+        } catch (e) {
+            console.error("Failed to parse macros JSON", e);
+        }
+      }
+
     } catch (error) {
       setResult({ text: "Erro ao analisar. Tente novamente." });
     } finally {
@@ -137,7 +170,9 @@ export const Scanner: React.FC = () => {
     setFrontImage(null);
     setBackImage(null);
     setResult(null);
+    setMacros(null);
     setCameraMode(false);
+    setCameraError(null);
     stopCamera();
   };
 
@@ -194,6 +229,15 @@ export const Scanner: React.FC = () => {
         {/* INPUT SECTION */}
         <div className="space-y-6">
             
+            {/* ERROR BANNER */}
+            {cameraError && (
+                <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-xl flex gap-3 items-center animate-shake">
+                    <ShieldAlert className="text-red-400 shrink-0" size={20} />
+                    <p className="text-sm text-red-200">{cameraError}</p>
+                    <button onClick={() => setCameraError(null)} className="ml-auto text-red-400 hover:text-white"><X size={16} /></button>
+                </div>
+            )}
+
             {/* --- BODY SCAN UI --- */}
             {isBodyScan && (
                 <div className="grid grid-cols-2 gap-4">
@@ -342,50 +386,79 @@ export const Scanner: React.FC = () => {
             )}
 
             {result && !loading && (
-                <Card className="h-full overflow-y-auto bg-slate-800/80 border-emerald-500/30 shadow-2xl shadow-emerald-900/20 custom-scrollbar max-h-[600px]">
-                    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5 sticky top-0 bg-slate-800/95 backdrop-blur-xl z-10 -mx-2 px-2 pt-2">
-                        <div className="p-2 bg-emerald-500/10 rounded-lg">
-                            <CheckCircle size={20} className="text-emerald-400" />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-white">Relatório da Análise</h3>
-                            <p className="text-xs text-slate-400">Gerado via Gemini Vision + Search</p>
-                        </div>
-                    </div>
+                <div className="h-full flex flex-col gap-4">
                     
-                    <div className="prose prose-invert prose-sm prose-emerald prose-headings:text-white prose-strong:text-emerald-300">
-                        <ReactMarkdown>{result.text}</ReactMarkdown>
-                    </div>
-
-                    {/* Grounding Sources */}
-                    {result.groundingMetadata?.groundingChunks && (
-                        <div className="mt-6 pt-4 border-t border-white/5">
-                            <div className="flex items-center gap-2 mb-3 text-slate-400">
-                                <Globe size={14} />
-                                <span className="text-xs font-semibold uppercase tracking-wider">Fontes Google</span>
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                                {result.groundingMetadata.groundingChunks.map((chunk: any, i: number) => {
-                                    if (chunk.web?.uri) {
-                                        return (
-                                            <a 
-                                                key={i} 
-                                                href={chunk.web.uri} 
-                                                target="_blank" 
-                                                rel="noreferrer"
-                                                className="flex items-center gap-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-emerald-500 transition-colors"
-                                            >
-                                                <span>{chunk.web.title || "Fonte Externa"}</span>
-                                                <ExternalLink size={10} className="shrink-0 opacity-50" />
-                                            </a>
-                                        )
-                                    }
-                                    return null;
-                                })}
-                            </div>
+                    {/* MACROS SUMMARY CARD (Only for Food) */}
+                    {macros && !isBodyScan && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <Card className="p-4 bg-orange-500/10 border-orange-500/20 flex flex-col items-center justify-center">
+                                <Flame className="text-orange-500 mb-2" size={24} />
+                                <span className="text-2xl font-bold text-white">{macros.calories}</span>
+                                <span className="text-xs text-orange-200 uppercase tracking-wider">Calorias</span>
+                            </Card>
+                            <Card className="p-4 bg-blue-500/10 border-blue-500/20 flex flex-col items-center justify-center">
+                                <Dumbbell className="text-blue-500 mb-2" size={24} />
+                                <span className="text-2xl font-bold text-white">{macros.protein}g</span>
+                                <span className="text-xs text-blue-200 uppercase tracking-wider">Proteína</span>
+                            </Card>
+                            <Card className="p-4 bg-yellow-500/10 border-yellow-500/20 flex flex-col items-center justify-center">
+                                <Wheat className="text-yellow-500 mb-2" size={24} />
+                                <span className="text-2xl font-bold text-white">{macros.carbs}g</span>
+                                <span className="text-xs text-yellow-200 uppercase tracking-wider">Carbo</span>
+                            </Card>
+                            <Card className="p-4 bg-pink-500/10 border-pink-500/20 flex flex-col items-center justify-center">
+                                <Droplets className="text-pink-500 mb-2" size={24} />
+                                <span className="text-2xl font-bold text-white">{macros.fat}g</span>
+                                <span className="text-xs text-pink-200 uppercase tracking-wider">Gordura</span>
+                            </Card>
                         </div>
                     )}
-                </Card>
+
+                    <Card className="flex-1 overflow-y-auto bg-slate-800/80 border-emerald-500/30 shadow-2xl shadow-emerald-900/20 custom-scrollbar max-h-[600px]">
+                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/5 sticky top-0 bg-slate-800/95 backdrop-blur-xl z-10 -mx-2 px-2 pt-2">
+                            <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                <CheckCircle size={20} className="text-emerald-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Relatório da Análise</h3>
+                                <p className="text-xs text-slate-400">Gerado via Gemini Vision + Search</p>
+                            </div>
+                        </div>
+                        
+                        <div className="prose prose-invert prose-sm prose-emerald prose-headings:text-white prose-strong:text-emerald-300">
+                            <ReactMarkdown>{result.text}</ReactMarkdown>
+                        </div>
+
+                        {/* Grounding Sources */}
+                        {result.groundingMetadata?.groundingChunks && (
+                            <div className="mt-6 pt-4 border-t border-white/5">
+                                <div className="flex items-center gap-2 mb-3 text-slate-400">
+                                    <Globe size={14} />
+                                    <span className="text-xs font-semibold uppercase tracking-wider">Fontes Google</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {result.groundingMetadata.groundingChunks.map((chunk: any, i: number) => {
+                                        if (chunk.web?.uri) {
+                                            return (
+                                                <a 
+                                                    key={i} 
+                                                    href={chunk.web.uri} 
+                                                    target="_blank" 
+                                                    rel="noreferrer"
+                                                    className="flex items-center gap-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-emerald-500 transition-colors"
+                                                >
+                                                    <span>{chunk.web.title || "Fonte Externa"}</span>
+                                                    <ExternalLink size={10} className="shrink-0 opacity-50" />
+                                                </a>
+                                            )
+                                        }
+                                        return null;
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </Card>
+                </div>
             )}
         </div>
       </div>

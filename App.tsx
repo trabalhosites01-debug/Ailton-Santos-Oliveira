@@ -27,7 +27,8 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   // If user IS onboarded but tries to access onboarding, send to dashboard
-  if (user && user.onboarded && location.pathname === AppRoute.ONBOARDING) {
+  // EXCEPTION: If they are accessing via Edit Profile button (state.editing)
+  if (user && user.onboarded && location.pathname === AppRoute.ONBOARDING && !location.state?.editing) {
     return <Navigate to={AppRoute.DASHBOARD} replace />;
   }
 
@@ -38,12 +39,15 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // We generally want onboarding to be full screen, so no Layout wrapper
 const ProtectedOnboarding: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
+  const location = useLocation();
+  const isEditing = location.state?.editing;
   
   if (!isAuthenticated) {
     return <Navigate to={AppRoute.LOGIN} replace />;
   }
 
-  if (user && user.onboarded) {
+  // Only redirect if onboarded AND NOT editing
+  if (user && user.onboarded && !isEditing) {
     return <Navigate to={AppRoute.DASHBOARD} replace />;
   }
 

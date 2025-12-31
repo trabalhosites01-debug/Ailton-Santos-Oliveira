@@ -51,7 +51,6 @@ const getSystemInstruction = (role: 'trainer' | 'nutritionist' | 'general', prof
          - Tabela OBRIGATÓRIA: | Refeição | Alimentos | Quantidade (g) |.
          - IMPORTANTE: Você DEVE especificar o peso em GRAMAS para cada item (ex: Arroz Branco 150g). Se for unidade, estime o peso em gramas (ex: 1 Ovo Médio (50g)).
       2. **SUPLEMENTAÇÃO + LAUDO**: Quando pedido suplementação, liste TODOS os suplementos necessários. No final da resposta, inclua um breve LAUDO NUTRICIONAL (Resumo do estado atual e estratégia).
-      3. **MAPAS**: Use a ferramenta googleMaps para encontrar lojas.
     `;
   }
 
@@ -79,8 +78,7 @@ export const sendMessageToAI = async (
         temperature: 0.4,
         maxOutputTokens: 3000,
         tools: [
-            { googleSearch: {} }, 
-            { googleMaps: {} }
+            { googleSearch: {} }
         ]
       },
       history: history

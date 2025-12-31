@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ChatInterface, ChatInterfaceHandle, QuickAction } from '../components/ChatInterface';
-import { Utensils, FileText, Pill, MapPin } from 'lucide-react';
+import { Utensils, FileText, Pill } from 'lucide-react';
 
 export const Nutritionist: React.FC = () => {
   const { user } = useAuth();
@@ -24,11 +24,6 @@ export const Nutritionist: React.FC = () => {
         label: "Suplementação + Laudo", 
         prompt: "Liste TODOS os suplementos que devo tomar. Tabela: | Suplemento | Dosagem | Horário |. No final, adicione um breve LAUDO NUTRICIONAL justificando essas escolhas.",
         icon: <Pill size={18} />
-    },
-    { 
-        label: "Encontrar Locais (Maps)", 
-        prompt: "Encontre 'Lojas de Suplementos' e 'Restaurantes de Comida Saudável' próximos a mim ou na minha cidade. Liste 3 opções com endereço.",
-        icon: <MapPin size={18} />
     }
   ];
 
@@ -45,13 +40,13 @@ export const Nutritionist: React.FC = () => {
                NUTRIÇÃO <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-blue-400">INTELIGENTE</span>
              </h1>
              <p className="text-red-100 text-lg md:text-xl max-w-2xl font-light">
-               Dietas calculadas, laudos técnicos, mapas de lojas e suplementação completa.
+               Dietas calculadas, laudos técnicos e suplementação completa.
              </p>
           </div>
         </div>
 
         {/* Organized Quick Actions Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {quickActions.map((qa, idx) => (
                 <button
                     key={idx}
@@ -71,7 +66,7 @@ export const Nutritionist: React.FC = () => {
             ref={chatRef}
             user={user}
             type="nutritionist"
-            initialMessage={`**Nutricionista Online.**\n\nPosso gerar seu plano alimentar (agora com pesagem em gramas), criar um laudo técnico ou encontrar lojas.`}
+            initialMessage={`**Nutricionista Online.**\n\nPosso gerar seu plano alimentar (agora com pesagem em gramas) ou criar um laudo técnico.`}
             quickActions={[]} 
         />
       </div>
